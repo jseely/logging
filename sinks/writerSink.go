@@ -34,17 +34,18 @@ func (s *writerSink) Level(level common.Level) {
 	s.minLevel = level
 }
 
-func (s *writerSink) Write(level common.Level, messageTemplate string, fields map[string]interface{}) {
+func (s *writerSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
 	if level < s.minLevel {
 		return
 	}
 	if s.outputAsBlob {
 		msg := eventHubsMessage{
-			Timestamp:       time.Now().UTC().String(),
-			Level:           level.String(),
-			MessageTemplate: messageTemplate,
-			Message:         common.FormatTemplate(messageTemplate, fields),
-			Fields:          fields,
+			Timestamp:        time.Now().UTC().String(),
+			ApplicationScope: appScope,
+			Level:            level.String(),
+			MessageTemplate:  messageTemplate,
+			Message:          common.FormatTemplate(messageTemplate, fields),
+			Fields:           fields,
 		}
 		serialized, err := json.Marshal(msg)
 		if err != nil {
@@ -54,6 +55,10 @@ func (s *writerSink) Write(level common.Level, messageTemplate string, fields ma
 		json.Indent(&out, serialized, "", "  ")
 		s.writer.Write(out.Bytes())
 	} else {
-		s.writer.Write([]byte(fmt.Sprintf("%v %s\t%s\n", time.Now(), level.String(), common.FormatTemplate(messageTemplate, fields))))
+		if appScope == "" {
+			s.writer.Write([]byte(fmt.Sprintf("%v %s\t%s\n", time.Now(), level.String(), common.FormatTemplate(messageTemplate, fields))))
+		} else {
+			s.writer.Write([]byte(fmt.Sprintf("%v [%s] %s\t%s\n", time.Now(), appScope, level.String(), common.FormatTemplate(messageTemplate, fields))))
+		}
 	}
 }

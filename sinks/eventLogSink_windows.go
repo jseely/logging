@@ -36,11 +36,16 @@ func (s *eventLogSink) Level(minLevel common.Level) {
 	s.minLevel = minLevel
 }
 
-func (s *eventLogSink) Write(level common.Level, messageTemplate string, fields map[string]interface{}) {
+func (s *eventLogSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
 	if level < s.minLevel {
 		return
 	}
-	msg := common.FormatTemplate(messageTemplate, fields)
+	var msg string
+	if appScope == "" {
+		msg = common.FormatTemplate(messageTemplate, fields)
+	} else {
+		msg = fmt.Sprintf("[%s] %s", appScope, common.FormatTemplate(messageTemplate, fields))
+	}
 	var err error
 	for i := 0; i == 0 || i < 5 && err != nil; i++ {
 		if level <= common.INFORMATION {

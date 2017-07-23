@@ -33,11 +33,12 @@ type eventHubsBatchMessage struct {
 }
 
 type eventHubsMessage struct {
-	Timestamp       string                 `json:"@timestamp"`
-	Level           string                 `json:"level"`
-	MessageTemplate string                 `json:"messageTemplate"`
-	Message         string                 `json:"message"`
-	Fields          map[string]interface{} `json:"fields"`
+	Timestamp        string                 `json:"@timestamp"`
+	ApplicationScope string                 `json:"appScope"`
+	Level            string                 `json:"level"`
+	MessageTemplate  string                 `json:"messageTemplate"`
+	Message          string                 `json:"message"`
+	Fields           map[string]interface{} `json:"fields"`
 }
 
 type EventHubsSink interface {
@@ -160,16 +161,17 @@ func (s *eventHubsSink) EnrichWith(key string, value interface{}) {
 	s.enrichWith[key] = value
 }
 
-func (s *eventHubsSink) Write(level common.Level, messageTemplate string, fields map[string]interface{}) {
+func (s *eventHubsSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
 	for k, v := range s.enrichWith {
 		fields[k] = v
 	}
 	event := eventHubsMessage{
-		Timestamp:       time.Now().UTC().Format(time.RFC3339),
-		Level:           level.String(),
-		MessageTemplate: messageTemplate,
-		Message:         common.FormatTemplate(messageTemplate, fields),
-		Fields:          fields,
+		Timestamp:        time.Now().UTC().Format(time.RFC3339),
+		ApplicationScope: appScope,
+		Level:            level.String(),
+		MessageTemplate:  messageTemplate,
+		Message:          common.FormatTemplate(messageTemplate, fields),
+		Fields:           fields,
 	}
 	if s.batchMessages {
 		serialized, err := json.Marshal(event)

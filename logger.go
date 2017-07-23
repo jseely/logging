@@ -11,10 +11,12 @@ import (
 )
 
 type logger struct {
+	scope string
 	sinks []common.Sink
 }
 
 type Logger interface {
+	WithApplicationScope(scope string) Logger
 	Close() error
 	Verbose(message string, values ...interface{})
 	Debug(message string, values ...interface{})
@@ -27,6 +29,20 @@ type Logger interface {
 func New(sinks ...common.Sink) Logger {
 	return &logger{
 		sinks: sinks,
+	}
+}
+
+func NewWithApplicationScope(scope string, sinks ...common.Sink) Logger {
+	return &logger{
+		scope: scope,
+		sinks: sinks,
+	}
+}
+
+func (l *logger) WithApplicationScope(scope string) Logger {
+	return &logger{
+		scope: l.scope + "." + scope,
+		sinks: l.sinks,
 	}
 }
 
@@ -85,7 +101,7 @@ func (l *logger) dispatch(level common.Level, messageTemplate string, values []i
 	}
 	fields := createFieldsMap(messageTemplate, values)
 	for _, sink := range l.sinks {
-		sink.Write(level, messageTemplate, fields)
+		sink.Write(l.scope, level, messageTemplate, fields)
 	}
 }
 

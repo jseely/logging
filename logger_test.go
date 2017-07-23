@@ -47,22 +47,28 @@ func assertPanic(t *testing.T, failMessage string, f func()) {
 }
 
 type event struct {
-	level   common.Level
-	message string
-	fields  map[string]interface{}
+	appScope string
+	level    common.Level
+	message  string
+	fields   map[string]interface{}
 }
 
 type testSink struct {
 	events []event
 }
 
+func (s *testSink) Close() error {
+	return nil
+}
+
 func (s *testSink) Level(minLevel common.Level) {}
 
-func (s *testSink) Write(level common.Level, messageTemplate string, fields map[string]interface{}) {
+func (s *testSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
 	s.events = append(s.events, event{
-		level:   level,
-		message: messageTemplate,
-		fields:  fields,
+		appScope: appScope,
+		level:    level,
+		message:  messageTemplate,
+		fields:   fields,
 	})
 }
 
@@ -70,7 +76,7 @@ func (s *testSink) assertContainsEvent(t *testing.T, e event) {
 	for _, e1 := range s.events {
 		f, _ := json.Marshal(e.fields)
 		f1, _ := json.Marshal(e1.fields)
-		if e.level == e1.level && string(f) == string(f1) && e.message == e1.message {
+		if e.appScope == e1.appScope && e.level == e1.level && string(f) == string(f1) && e.message == e1.message {
 			return
 		}
 	}
