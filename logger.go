@@ -11,12 +11,13 @@ import (
 )
 
 type logger struct {
-	scope string
-	sinks []common.Sink
+	scope    string
+	minLevel common.Level
+	sinks    []common.Sink
 }
 
 type Logger interface {
-	WithApplicationScope(scope string) Logger
+	WithApplicationScope(scope string, minLevel common.Level) Logger
 	Close() error
 	Verbose(message string, values ...interface{})
 	Debug(message string, values ...interface{})
@@ -26,23 +27,26 @@ type Logger interface {
 	Fatal(message string, values ...interface{})
 }
 
-func New(sinks ...common.Sink) Logger {
+func New(minLevel common.Level, sinks ...common.Sink) Logger {
 	return &logger{
-		sinks: sinks,
+		minLevel: minLevel,
+		sinks:    sinks,
 	}
 }
 
-func NewWithApplicationScope(scope string, sinks ...common.Sink) Logger {
+func NewWithApplicationScope(scope string, minLevel common.Level, sinks ...common.Sink) Logger {
 	return &logger{
-		scope: scope,
-		sinks: sinks,
+		scope:    scope,
+		minLevel: minLevel,
+		sinks:    sinks,
 	}
 }
 
-func (l *logger) WithApplicationScope(scope string) Logger {
+func (l *logger) WithApplicationScope(scope string, minLevel common.Level) Logger {
 	return &logger{
-		scope: l.scope + "." + scope,
-		sinks: l.sinks,
+		scope:    l.scope + "." + scope,
+		minLevel: minLevel,
+		sinks:    l.sinks,
 	}
 }
 
@@ -90,6 +94,9 @@ func (l *logger) Fatal(message string, values ...interface{}) {
 }
 
 func (l *logger) dispatch(level common.Level, messageTemplate string, values []interface{}) {
+	if level < l.minLevel {
+		return
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			v, _ := json.Marshal(values)

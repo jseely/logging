@@ -32,9 +32,12 @@ func TestCreateFieldsMap(t *testing.T) {
 
 func TestLogger(t *testing.T) {
 	sink := testSink{events: []event{}}
-	log := New(&sink)
+	log := New(common.INFORMATION, &sink)
 	log.Information("test")
 	sink.assertContainsEvent(t, event{level: common.INFORMATION, message: "test", fields: map[string]interface{}{}})
+
+	log.Verbose("test2")
+	sink.assertNotContainsEvent(t, event{level: common.VERBOSE, message: "test2", fields: map[string]interface{}{}})
 }
 
 func assertPanic(t *testing.T, failMessage string, f func()) {
@@ -70,6 +73,18 @@ func (s *testSink) Write(appScope string, level common.Level, messageTemplate st
 		message:  messageTemplate,
 		fields:   fields,
 	})
+}
+
+func (s *testSink) assertNotContainsEvent(t *testing.T, e event) {
+	for _, e1 := range s.events {
+		f, _ := json.Marshal(e.fields)
+		f1, _ := json.Marshal(e1.fields)
+		if e.appScope == e1.appScope && e.level == e1.level && string(f) == string(f1) && e.message == e1.message {
+			serialized, _ := json.Marshal(s.events)
+			es, _ := json.Marshal(e)
+			t.Fatalf("Sink did not contain expected event (%s). Sink contents: ", string(es), string(serialized))
+		}
+	}
 }
 
 func (s *testSink) assertContainsEvent(t *testing.T, e event) {
