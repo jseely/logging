@@ -32,12 +32,29 @@ func TestCreateFieldsMap(t *testing.T) {
 
 func TestLogger(t *testing.T) {
 	sink := testSink{events: []event{}}
-	log := New(common.INFORMATION, &sink)
+	log := NewWithApplicationScope("application", common.INFORMATION, &sink)
 	log.Information("test")
-	sink.assertContainsEvent(t, event{level: common.INFORMATION, message: "test", fields: map[string]interface{}{}})
+	sink.assertContainsEvent(t, event{AppScope: "application", Level: common.INFORMATION.String(), Message: "test", Fields: map[string]interface{}{}})
 
 	log.Verbose("test2")
-	sink.assertNotContainsEvent(t, event{level: common.VERBOSE, message: "test2", fields: map[string]interface{}{}})
+	sink.assertNotContainsEvent(t, event{AppScope: "application", Level: common.VERBOSE.String(), Message: "test2", Fields: map[string]interface{}{}})
+
+	log2 := log.WithApplicationScope("sub", common.VERBOSE)
+	log2.Verbose("test3")
+	sink.assertContainsEvent(t, event{AppScope: "application.sub", Level: common.VERBOSE.String(), Message: "test3", Fields: map[string]interface{}{}})
+
+	log2.Fatal("test4")
+	sink.assertContainsEvent(t, event{AppScope: "application.sub", Level: common.FATAL.String(), Message: "test4", Fields: map[string]interface{}{}})
+
+	log3 := log2.WithApplicationScope("furthersub", common.FATAL)
+	log3.Verbose("test5")
+	sink.assertNotContainsEvent(t, event{AppScope: "application.sub.furthersub", Level: common.VERBOSE.String(), Message: "test5", Fields: map[string]interface{}{}})
+
+	log3.Error("test6")
+	sink.assertNotContainsEvent(t, event{AppScope: "application.sub.furthersub", Level: common.ERROR.String(), Message: "test6", Fields: map[string]interface{}{}})
+
+	log3.Fatal("test7")
+	sink.assertContainsEvent(t, event{AppScope: "application.sub.furthersub", Level: common.FATAL.String(), Message: "test7", Fields: map[string]interface{}{}})
 }
 
 func assertPanic(t *testing.T, failMessage string, f func()) {
@@ -50,10 +67,10 @@ func assertPanic(t *testing.T, failMessage string, f func()) {
 }
 
 type event struct {
-	appScope string
-	level    common.Level
-	message  string
-	fields   map[string]interface{}
+	AppScope string
+	Level    string
+	Message  string
+	Fields   map[string]interface{}
 }
 
 type testSink struct {
@@ -68,18 +85,18 @@ func (s *testSink) Level(minLevel common.Level) {}
 
 func (s *testSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
 	s.events = append(s.events, event{
-		appScope: appScope,
-		level:    level,
-		message:  messageTemplate,
-		fields:   fields,
+		AppScope: appScope,
+		Level:    level.String(),
+		Message:  messageTemplate,
+		Fields:   fields,
 	})
 }
 
 func (s *testSink) assertNotContainsEvent(t *testing.T, e event) {
 	for _, e1 := range s.events {
-		f, _ := json.Marshal(e.fields)
-		f1, _ := json.Marshal(e1.fields)
-		if e.appScope == e1.appScope && e.level == e1.level && string(f) == string(f1) && e.message == e1.message {
+		f, _ := json.Marshal(e.Fields)
+		f1, _ := json.Marshal(e1.Fields)
+		if e.AppScope == e1.AppScope && e.Level == e1.Level && string(f) == string(f1) && e.Message == e1.Message {
 			serialized, _ := json.Marshal(s.events)
 			es, _ := json.Marshal(e)
 			t.Fatalf("Sink did not contain expected event (%s). Sink contents: ", string(es), string(serialized))
@@ -89,13 +106,13 @@ func (s *testSink) assertNotContainsEvent(t *testing.T, e event) {
 
 func (s *testSink) assertContainsEvent(t *testing.T, e event) {
 	for _, e1 := range s.events {
-		f, _ := json.Marshal(e.fields)
-		f1, _ := json.Marshal(e1.fields)
-		if e.appScope == e1.appScope && e.level == e1.level && string(f) == string(f1) && e.message == e1.message {
+		f, _ := json.Marshal(e.Fields)
+		f1, _ := json.Marshal(e1.Fields)
+		if e.AppScope == e1.AppScope && e.Level == e1.Level && string(f) == string(f1) && e.Message == e1.Message {
 			return
 		}
 	}
 	serialized, _ := json.Marshal(s.events)
 	es, _ := json.Marshal(e)
-	t.Fatalf("Sink did not contain expected event (%s). Sink contents: ", string(es), string(serialized))
+	t.Fatalf("Sink did not contain expected event (%s). Sink contents: %s", string(es), string(serialized))
 }
