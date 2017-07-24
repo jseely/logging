@@ -13,14 +13,12 @@ import (
 )
 
 type writerSink struct {
-	minLevel     common.Level
 	writer       io.WriteCloser
 	outputAsBlob bool
 }
 
 func NewWriterSink(writer io.WriteCloser, outputAsBlob bool) common.Sink {
 	return &writerSink{
-		minLevel:     common.INFORMATION,
 		writer:       writer,
 		outputAsBlob: outputAsBlob,
 	}
@@ -30,14 +28,7 @@ func (s *writerSink) Close() error {
 	return s.writer.Close()
 }
 
-func (s *writerSink) Level(level common.Level) {
-	s.minLevel = level
-}
-
 func (s *writerSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
-	if level < s.minLevel {
-		return
-	}
 	if s.outputAsBlob {
 		msg := eventHubsMessage{
 			Timestamp:        time.Now().UTC().String(),

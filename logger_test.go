@@ -30,6 +30,23 @@ func TestCreateFieldsMap(t *testing.T) {
 	}
 }
 
+var newLoggerTests = []struct {
+	logFunc       func(log Logger)
+	expectedEvent event
+}{
+	{logFunc: func(log Logger) { log.Verbose("test1") }, expectedEvent: event{AppScope: "", Level: common.VERBOSE.String(), Message: "test1", Fields: map[string]interface{}{}}},
+}
+
+func TestNewLogger(t *testing.T) {
+	sink := testSink{events: []event{}}
+	log := New(common.VERBOSE, &sink)
+
+	for _, test := range newLoggerTests {
+		test.logFunc(log)
+		sink.assertContainsEvent(t, test.expectedEvent)
+	}
+}
+
 func TestLogger(t *testing.T) {
 	sink := testSink{events: []event{}}
 	log := NewWithApplicationScope("application", common.INFORMATION, &sink)

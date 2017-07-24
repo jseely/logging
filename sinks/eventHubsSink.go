@@ -16,7 +16,6 @@ import (
 )
 
 type eventHubsSink struct {
-	minLevel      common.Level
 	enrichWith    map[string]interface{}
 	uri           string
 	auth          string
@@ -48,7 +47,6 @@ type EventHubsSink interface {
 
 func NewEventHubsSink(uri, auth string) EventHubsSink {
 	sink := &eventHubsSink{
-		minLevel:      common.INFORMATION,
 		enrichWith:    map[string]interface{}{},
 		uri:           uri,
 		auth:          auth,
@@ -151,10 +149,6 @@ func sendEventHubBatch(uri, auth string, batch []interface{}) error {
 		return fmt.Errorf("Request did not complete successfully, returned '%s'", resp.Status)
 	}
 	return nil
-}
-
-func (s *eventHubsSink) Level(minLevel common.Level) {
-	s.minLevel = minLevel
 }
 
 func (s *eventHubsSink) EnrichWith(key string, value interface{}) {

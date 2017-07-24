@@ -8,8 +8,7 @@ import (
 )
 
 type eventLogSink struct {
-	minLevel common.Level
-	log      *eventlog.Log
+	log *eventlog.Log
 }
 
 func NewEventLogSink(source string) (common.Sink, error) {
@@ -32,14 +31,7 @@ func (s *eventLogSink) Close() error {
 	return s.log.Close()
 }
 
-func (s *eventLogSink) Level(minLevel common.Level) {
-	s.minLevel = minLevel
-}
-
 func (s *eventLogSink) Write(appScope string, level common.Level, messageTemplate string, fields map[string]interface{}) {
-	if level < s.minLevel {
-		return
-	}
 	var msg string
 	if appScope == "" {
 		msg = common.FormatTemplate(messageTemplate, fields)
